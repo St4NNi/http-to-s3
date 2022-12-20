@@ -71,6 +71,7 @@ impl S3Backend {
         bucket: String,
         key: String,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
+        self.check_and_create_bucket(bucket.to_string()).await?;
         let multipart = self
             .s3_client
             .create_multipart_upload()

@@ -46,6 +46,19 @@ pub const UPLOAD_CHUNK_SIZE: u64 = 104_857_600;
 /// - `key: String` - Key in S3 to use
 /// - `chunk_size:  Option<u64>` - Optional size of chunks (default: 100MB)
 ///
+/// # Example
+///  ```rust
+/// use http-to-s3::upload_file;
+/// upload_file(
+///   "https://speed.hetzner.de/100MB.bin".to_string(),
+///   "test_bucket".to_string(), // Will be created if not exists
+///   "test_key".to_string(), // The key in the s3 repo
+///   Some(16_384) // Chunk size (should be 1024 * 2 ^ x)
+/// )
+/// .await
+/// .unwrap();
+/// Ok(())
+/// ```
 pub async fn upload_file(
     url: String,
     bucket: String,

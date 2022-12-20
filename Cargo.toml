@@ -5,6 +5,7 @@ authors = ["Sebastian <sb@pus.de>"]
 description = "A small rust library that tries to efficiently move files from HTTP endpoints to S3"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/St4NNi/http-to-s3"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
