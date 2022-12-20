@@ -1,7 +1,11 @@
 [package]
-name = "s3move"
+name = "http-to-s3"
 version = "0.1.0"
 edition = "2021"
+authors = ["Sebastian <sb@pus.de>"]
+description = "A small rust library that tries to efficiently move files from HTTP endpoints to S3"
+edition = "2021"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

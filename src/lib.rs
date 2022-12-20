@@ -1,3 +1,28 @@
+//! A small library that tries to efficiently copy files from HTTP endpoints
+//! to a S3 compatible endpoint. Uses tokio / reqwest and the official s3 sdk.
+//!
+//!
+//! # Examples
+//!
+//! Simple example that uploads a file from http to s3.
+//! Requires the following env-vars to be set:
+//! `S3_ENDPOINT_HOST` = The S3 endpoint that should be used
+//! `AWS_ACCESS_KEY_ID` = S3 Access Key
+//! `AWS_SECRET_ACCESS_KEY` = S3 Secret Key
+//!
+//! ```rust
+//! use http-to-s3::upload_file;
+//! upload_file(
+//!   "https://speed.hetzner.de/100MB.bin".to_string(),
+//!   "test_bucket".to_string(), // Will be created if not exists
+//!   "test_key".to_string(), // The key in the s3 repo
+//!   None
+//! )
+//! .await
+//! .unwrap();
+//! Ok(())
+//! ```
+//!
 use std::sync::Arc;
 
 use async_channel::{Receiver, Sender};
@@ -9,12 +34,17 @@ use tokio::try_join;
 
 mod s3;
 
+// Default chunk_size ~100 MB
 pub const UPLOAD_CHUNK_SIZE: u64 = 104_857_600;
+
+/// Main function for this crate
+///
 
 pub async fn upload_file(
     url: String,
     bucket: String,
     key: String,
+    chunk_size: Option<u64>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // Spawn an ARC to the S3 Backend
     let s3backend = Arc::new(
@@ -35,12 +65,17 @@ pub async fn upload_file(
     // Create a stream for the data
     let mut data_stream = resp.bytes_stream();
 
+    let chunk_size = match chunk_size {
+        None => UPLOAD_CHUNK_SIZE,
+        Some(size) => size,
+    };
+
     // Check if upload is multi-part
-    if cont_length > UPLOAD_CHUNK_SIZE {
+    if cont_length > chunk_size {
         // Determine number of parts
-        let number_of_parts = cont_length / UPLOAD_CHUNK_SIZE;
+        let number_of_parts = cont_length / chunk_size;
         // Get size of last_part
-        let last_part = cont_length % UPLOAD_CHUNK_SIZE;
+        let last_part = cont_length % chunk_size;
 
         // Initialize multi-part upload
         let upload_id = s3backend
@@ -66,7 +101,7 @@ pub async fn upload_file(
             upload_id.to_string(),
             chan_recv.clone(),
             part_number,
-            UPLOAD_CHUNK_SIZE as i64,
+            chunk_size as i64,
         ));
 
         // Create "next" bytes when chunk from stream does not fit into UPLOAD chunk size
@@ -79,9 +114,9 @@ pub async fn upload_file(
             let length = ch.len();
 
             // If the next chunk will make the accumulator / buffer larger than the chunk size
-            if accumulator + length > UPLOAD_CHUNK_SIZE as usize {
+            if accumulator + length > chunk_size as usize {
                 // Determine the point where the buffer should be splitted
-                let max_size = length + accumulator - UPLOAD_CHUNK_SIZE as usize;
+                let max_size = length + accumulator - chunk_size as usize;
                 // Split the bytes buffer (0..max_size -> old buffer, max_size.. -> next_bytes)
                 next_bytes = ch.split_to(max_size as usize);
                 // Send the "old buffer" to the channel
@@ -95,7 +130,7 @@ pub async fn upload_file(
                 let size = if part_number == number_of_parts as i32 + 1 {
                     last_part
                 } else {
-                    UPLOAD_CHUNK_SIZE
+                    chunk_size
                 };
                 // Create new s3 uploader with new channel
                 queue.push(spawn_multi_upload(
