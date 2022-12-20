@@ -39,7 +39,13 @@ pub const UPLOAD_CHUNK_SIZE: u64 = 104_857_600;
 
 /// Main function for this crate
 ///
-
+/// # Parameters
+///
+/// - `url: String` - Url to download from
+/// - `bucket: String` - Bucket in S3 to use
+/// - `key: String` - Key in S3 to use
+/// - `chunk_size:  Option<u64>` - Optional size of chunks (default: 100MB)
+///
 pub async fn upload_file(
     url: String,
     bucket: String,
@@ -186,6 +192,7 @@ pub async fn upload_file(
     Ok(())
 }
 
+/// Process a single chunk for single part upload
 async fn process_chunks(
     mut data_stream: impl Stream<Item = Result<bytes::Bytes, reqwest::Error>> + std::marker::Unpin,
     chan_send: Sender<Result<bytes::Bytes, reqwest::Error>>,
@@ -196,6 +203,7 @@ async fn process_chunks(
     Ok(())
 }
 
+/// Helper function to spawn an async multi-part upload
 fn spawn_multi_upload(
     backend: Arc<S3Backend>,
     bucket: String,
