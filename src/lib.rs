@@ -175,7 +175,6 @@ pub async fn upload_file(
         let mut completed_parts = Vec::new();
         for x in queue {
             let waited_for = x.await??;
-            println!("{:#?}", waited_for);
 
             completed_parts.push(
                 CompletedPart::builder()

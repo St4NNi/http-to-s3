@@ -119,7 +119,7 @@ impl S3Backend {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
         self.check_and_create_bucket(bucket.to_string()).await?;
 
-        log::info!("{:?}", parts);
+        log::info!("Finished multi-part upload: {:#?}", parts);
 
         self.s3_client
             .complete_multipart_upload()
